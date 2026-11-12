@@ -1,0 +1,11 @@
+calibration: alpha=2.379 rho0=0.792; props/element {'M3': 49.13213961922031, 'Best Graphene': 82.3659563924678, 'LG MONO': 50.58150851581509}
+25 / 200
+50 / 200
+75 / 200
+100 / 200
+125 / 200
+150 / 200
+175 / 200
+200 / 200
+typical replicate 150
+written D:\Developments\BIM-MR_Ifc\Assets\paper\revision_data\6_three_building_simulation

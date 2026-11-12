@@ -1,0 +1,88 @@
+{
+  "typical_seed": 150,
+  "alpha": 2.378978649511676,
+  "rho0": 0.792214207470702,
+  "params": {
+    "beta_density": 1.1,
+    "gamma_size": 0.45,
+    "ref_neigh": 23.0,
+    "ref_diag": 2.67,
+    "skill_sd_resid": 0.15,
+    "cand_rate": 0.075,
+    "rescue_slope": -0.04,
+    "p_notice_without": 0.4,
+    "p_notice_with": 0.25,
+    "aim": [
+      1.7,
+      0.35
+    ],
+    "popup": [
+      1.1,
+      0.38,
+      0.3
+    ],
+    "undo": [
+      3.0,
+      0.3
+    ],
+    "per_target_inspect": [
+      40.0,
+      0.3
+    ],
+    "walk_per_m": 1.15,
+    "load_base": 62.0,
+    "load_per_object": 0.035,
+    "narrative": [
+      3.2,
+      0.5
+    ],
+    "export_overhead": [
+      5.0,
+      1.5
+    ],
+    "p_screenshot_fail": 0.025,
+    "llm_latency": [
+      2.16,
+      0.51
+    ],
+    "questions_per_event": 0.9,
+    "p_ctx_missing": 0.012,
+    "p_flag_q": 0.055,
+    "p_flag_q_mep": 0.035,
+    "p_flag_narr": 0.035,
+    "bench_flag": {
+      "T1": 0.03,
+      "T2": 0.08,
+      "T3": 0.15
+    },
+    "p_frame_missing": 0.03,
+    "p_escape": 0.02,
+    "rater_err": 0.03,
+    "resid_before": 24.0,
+    "resid_after": 11.0,
+    "resid_sigma": 0.55,
+    "voice_playback": {
+      "60": 0.972,
+      "70": 0.936,
+      "80": 0.844
+    },
+    "live_penalty": {
+      "60": 0.02,
+      "70": 0.035,
+      "80": 0.055
+    },
+    "ko_penalty": 0.015,
+    "voice_latency": {
+      "60": 2.85,
+      "70": 3.1,
+      "80": 3.65
+    },
+    "tlx_disamb_extra": 0.12
+  },
+  "nprops": {
+    "M3": 49.13213961922031,
+    "Best Graphene": 82.3659563924678,
+    "LG MONO": 50.58150851581509
+  },
+  "replicates": 200
+}

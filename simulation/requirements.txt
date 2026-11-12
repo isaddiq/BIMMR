@@ -1,0 +1,7 @@
+# Python 3.13 (results in the paper were produced with 3.13.14)
+numpy==2.3.1
+scipy==1.18.1
+pandas==3.0.5
+matplotlib==3.10.3
+# only for raw_analyses/prepare_public_inputs.py (reads the restricted study workbook)
+openpyxl==3.1.5

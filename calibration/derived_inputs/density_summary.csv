@@ -1,0 +1,4 @@
+dataset,modules,elements,elements_per_module,neighbours_median,neighbours_p90,neighbours_mean,low_pct,medium_pct,high_pct,median_diag_m
+M3,30,2496,83.2,17.0,34.5,19.78,47.2,31.2,21.6,2.716
+Best Graphene,12,2946,245.5,23.0,46.0,27.7,25.2,40.0,34.8,2.666
+LG MONO,1,402,402.0,38.0,87.90000000000003,48.72,5.2,18.2,76.6,2.101

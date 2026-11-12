@@ -1,0 +1,31 @@
+{
+  "elements": 402,
+  "csv_rows": 411,
+  "fields": 261,
+  "fields_populated": 259,
+  "obj_objects": 402,
+  "obj_groups": 499,
+  "renderable_objects": 402,
+  "resolved": 402,
+  "unresolved": 0,
+  "duplicates": 0,
+  "mep": 116,
+  "mep_pct": 28.9,
+  "storey_levels": 6,
+  "classes": {
+    "IfcFlowSegment": 79,
+    "IfcBuildingElementProxy": 68,
+    "IfcBeam": 60,
+    "IfcWallStandardCase": 50,
+    "IfcColumn": 49,
+    "IfcFlowTerminal": 35,
+    "IfcFurnishingElement": 20,
+    "IfcSlab": 14,
+    "IfcRoof": 8,
+    "IfcWall": 8,
+    "IfcDoor": 4,
+    "IfcCovering": 3,
+    "IfcWindow": 2,
+    "IfcDistributionControlElement": 2
+  }
+}

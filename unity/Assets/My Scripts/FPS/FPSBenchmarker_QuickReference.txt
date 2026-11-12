@@ -1,0 +1,193 @@
+================================================================================
+  FPS Benchmarker - Quick Reference for Quest 3
+================================================================================
+
+OVERVIEW
+--------
+The FPS Benchmarker automatically measures frame rate performance of your BIM 
+models on Quest 3. It integrates with your ModuleManager to benchmark models 
+as they load.
+
+
+WHAT IT DOES
+------------
+1. Waits for a model to be fully loaded
+2. Runs a 15-second warm-up period
+3. Samples FPS for 60 seconds (every frame)
+4. Calculates statistics: mean, median, 95th/99th percentile, 1% low
+5. Tracks managed memory usage during sampling
+6. Saves results to CSV file on Quest's local storage
+
+
+SETUP IN UNITY
+--------------
+1. Create empty GameObject called "FPSBenchmarker"
+2. Add "FPSBenchmarker" component
+3. Drag your ModuleManager into "Module Manager Reference" field
+4. Configure settings:
+   - Warmup Duration: 15 seconds (recommended)
+   - Sample Duration: 60 seconds (recommended)
+   - Auto Benchmark On Load: Enable for automatic testing
+   - Enable Debug Logs: Enable to see progress
+
+
+USAGE MODES
+-----------
+
+Mode 1: Automatic (Recommended)
+   - Enable "Auto Benchmark On Load" checkbox
+   - Every time ModuleManager loads a model, benchmarking starts automatically
+   - Results saved after each model
+
+Mode 2: Manual via Script
+   FPSBenchmarker benchmarker = FindObjectOfType<FPSBenchmarker>();
+   benchmarker.StartBenchmarkForCurrentModel();
+
+Mode 3: Manual via UI Button
+   - Add FPSBenchmarkerExample component
+   - Create UI button and link to OnStartBenchmarkButtonClicked()
+
+
+BENCHMARK WORKFLOW
+------------------
+When benchmark starts:
+  ↓
+[15 seconds] Warm-up phase
+  → Model loads, shaders compile, caches warm up
+  → Console: "Starting warmup for model..."
+  ↓
+[60 seconds] Sampling phase  
+  → FPS measured every frame (~3,600 samples at 60 FPS)
+  → Memory tracked continuously
+  → Console: "Warmup complete. Starting FPS sampling..."
+  ↓
+Results saved to CSV
+  → Console: "Sampling complete for 'ModelName'"
+  → Console: "Results saved to: /storage/emulated/0/Android/data/..."
+
+
+ACCESSING RESULTS ON QUEST 3
+-----------------------------
+
+Method 1: USB Connection (Easiest)
+  1. Connect Quest 3 to PC via USB-C cable
+  2. Put on headset and approve "Allow USB debugging" prompt
+  3. Open Windows File Explorer
+  4. Navigate to: Quest 3 > Internal Storage > Android > data > [YourAppPackage] > files
+  5. Copy "fps_benchmark_results.csv" to your PC
+
+Method 2: SideQuest
+  1. Connect Quest to PC with SideQuest installed
+  2. Go to "File Explorer" in SideQuest
+  3. Navigate to /sdcard/Android/data/[YourAppPackage]/files
+  4. Download "fps_benchmark_results.csv"
+
+Method 3: ADB Command Line
+  adb pull /sdcard/Android/data/com.YourCompany.YourApp/files/fps_benchmark_results.csv
+
+The exact path is printed in Unity console when benchmark completes.
+
+
+CSV FILE FORMAT
+---------------
+Each row is one benchmark run:
+
+timestamp           - When benchmark completed (yyyy-MM-dd HH:mm:ss)
+modelId             - Name of the model prefab
+runId               - Sequential number (1, 2, 3...) for each model
+warmupSeconds       - Duration of warmup (usually 15.0)
+sampleSeconds       - Duration of sampling (usually 60.0)
+sampleCount         - Number of FPS samples collected
+meanFPS             - Average FPS across all samples
+medianFPS           - 50th percentile FPS
+p95FPS              - 95th percentile (smooth gameplay)
+p99FPS              - 99th percentile (peak performance)
+p1LowFPS            - 1st percentile (worst frame times)
+avgMemoryMB         - Average managed memory in megabytes
+notes               - Warnings (e.g., "model switched during sampling")
+
+
+INTERPRETING RESULTS
+--------------------
+
+Mean FPS
+  → Overall average performance
+  → Target: 72 FPS for Quest 3 (native refresh rate)
+
+Median FPS
+  → Typical frame rate (less affected by outliers)
+  → Should be close to mean for consistent performance
+
+95th/99th Percentile
+  → Smooth gameplay threshold
+  → 95th should be close to mean for good experience
+
+1% Low FPS
+  → Worst-case frame drops
+  → Shows stuttering/hitching
+  → Should stay above 60 FPS ideally
+
+Memory Usage
+  → Managed heap allocation
+  → Quest 3 has limited memory
+  → Watch for memory growth between runs
+
+
+KEYBOARD SHORTCUTS (Testing in Editor or PC)
+---------------------------------------------
+B - Start benchmark for current model
+C - Cancel current benchmark
+A - Toggle auto-benchmark mode
+
+
+TROUBLESHOOTING
+---------------
+
+Issue: "No model provider reference!"
+  → Solution: Assign ModuleManager in Inspector
+
+Issue: "ModuleManager does not implement IBimModelProvider interface!"
+  → Solution: Make sure ModuleManager.cs has the integration code applied
+
+Issue: Benchmark never starts
+  → Check: Is a model actually loaded?
+  → Check: Enable Debug Logs to see state transitions
+
+Issue: "Model switched during sampling"
+  → This is normal if user loads a different model during benchmark
+  → Results are still saved with a warning note
+
+Issue: Can't find CSV file on Quest
+  → Check exact path in Unity console log
+  → Make sure app has storage permissions
+  → Try Method 1 (USB connection) first
+
+
+TIPS FOR ACCURATE BENCHMARKING
+------------------------------
+✓ Wait for shaders to compile before benchmarking
+✓ Test each model multiple times (check runId column)
+✓ Keep Quest plugged in during testing (avoid throttling)
+✓ Close other apps on Quest
+✓ Test at same room temperature
+✓ Use auto-benchmark mode for consistency
+✓ Let warm-up complete (don't interact during first 15 seconds)
+
+
+CUSTOMIZATION
+-------------
+You can adjust timings in Inspector:
+- Warmup Duration: Increase for complex models (20-30s)
+- Sample Duration: Increase for more data (90-120s)
+
+Or modify in code:
+[SerializeField] private float warmupDuration = 15f;
+[SerializeField] private float sampleDuration = 60f;
+
+
+SUPPORT
+-------
+For issues or questions, check:
+1. Unity Console logs (enable Debug Logs)
+2. CSV file notes column
+3. ModuleManager_FPSBenchmark_Integration.txt for setup details

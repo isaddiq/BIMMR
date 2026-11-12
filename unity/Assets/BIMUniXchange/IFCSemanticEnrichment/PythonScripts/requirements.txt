@@ -1,0 +1,4 @@
+# IFC Semantic Enrichment - Python Requirements
+# Install with: pip install -r requirements.txt
+
+ifcopenshell>=0.7.0

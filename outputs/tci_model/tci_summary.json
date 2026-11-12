@@ -1,0 +1,51 @@
+{
+  "seed": 20261103,
+  "sigma": {
+    "paper": 0.5596986499910513,
+    "tablet": 0.4145313562244338,
+    "proposed": 0.47584752268448605
+  },
+  "tci": {
+    "paper": 0.1021,
+    "tablet": 0.6773,
+    "proposed": 0.8714
+  },
+  "full_system_tci_main": 0.8714,
+  "full_system_tci_ablation": 0.8714,
+  "full_system_tci_grid_operating_point": 0.8714,
+  "grid": {
+    "min": 0.714,
+    "max": 0.927,
+    "combos": 336,
+    "combos_ge_090": 13,
+    "both_links_1": 0.927
+  },
+  "elasticity_minus_005": {
+    "L1": 0.0433,
+    "L2": 0.0444,
+    "L3": 0.0458,
+    "L4": 0.0424,
+    "L5": 0.0435,
+    "L6": 0.0409,
+    "L7": 0.0437
+  },
+  "psa": {
+    "paper": [
+      0.047,
+      0.089,
+      0.154
+    ],
+    "tablet": [
+      0.568,
+      0.678,
+      0.775
+    ],
+    "proposed": [
+      0.754,
+      0.878,
+      0.941
+    ]
+  },
+  "psa_proposed_gt_tablet": "994/1000",
+  "runtime_s": 89.1
+}

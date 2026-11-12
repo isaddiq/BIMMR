@@ -1,0 +1,163 @@
+================================================================================
+  ModuleManager Integration Guide for FPS Benchmarking
+================================================================================
+
+STEP 1: Add the IBimModelProvider interface to ModuleManager
+-------------------------------------------------------------
+
+Find this line in ModuleManager.cs (line 19):
+    public class ModuleManager : MonoBehaviour
+
+Change it to:
+    public class ModuleManager : MonoBehaviour, IBimModelProvider
+
+
+STEP 2: Add new events and properties to ModuleManager
+------------------------------------------------------
+
+Add these lines right after the existing OnModuleSpawned event (around line 69):
+
+    // IBimModelProvider interface implementation for FPS benchmarking
+    public event Action<string, GameObject> OnModelLoaded;
+    public event Action<string> OnModelUnloaded;
+    
+    public string CurrentModelId => currentModule != null ? currentModule.name : null;
+    public GameObject CurrentModelRoot => currentModule;
+    public bool IsModelLoaded => currentModule != null && currentModule.activeInHierarchy;
+
+
+STEP 3: Fire the OnModelLoaded event
+------------------------------------
+
+Find the SpawnModule method (around line 249) and locate this line:
+    OnModuleSpawned?.Invoke(currentModule);
+
+Add this line RIGHT AFTER it:
+    OnModelLoaded?.Invoke(CurrentModelId, currentModule);
+
+
+STEP 4: Fire the OnModelUnloaded event
+--------------------------------------
+
+Find the OnModuleChanged method (around line 243) and locate this line:
+    if (currentModule != null) Destroy(currentModule);
+
+Replace it with:
+    if (currentModule != null)
+    {
+        string modelId = CurrentModelId;
+        OnModelUnloaded?.Invoke(modelId);
+        Destroy(currentModule);
+    }
+
+Also find OnProjectChanged method (around line 232) and locate:
+    if (currentModule != null)
+    {
+        Destroy(currentModule);
+        currentModule = null;
+    }
+
+Replace it with:
+    if (currentModule != null)
+    {
+        string modelId = CurrentModelId;
+        OnModelUnloaded?.Invoke(modelId);
+        Destroy(currentModule);
+        currentModule = null;
+    }
+
+
+STEP 5: Setup FPSBenchmarker in Unity Editor
+--------------------------------------------
+
+1. Create an empty GameObject in your scene (or add to existing manager object)
+2. Add the FPSBenchmarker component to it
+3. In the Inspector:
+   - Set "Module Manager Reference" to your ModuleManager instance
+   - Adjust "Warmup Duration" (default: 15 seconds)
+   - Adjust "Sample Duration" (default: 60 seconds)
+   - Enable "Auto Benchmark On Load" if you want automatic benchmarking
+   - Enable "Enable Debug Logs" for verbose output
+
+
+STEP 6: Using the FPS Benchmarker
+---------------------------------
+
+Manual benchmarking:
+    FPSBenchmarker benchmarker = FindObjectOfType<FPSBenchmarker>();
+    benchmarker.StartBenchmarkForCurrentModel();
+
+Enable auto-benchmarking:
+    benchmarker.StartAutoBenchmarkOnEveryLoad(true);
+
+Cancel current benchmark:
+    benchmarker.CancelBenchmark();
+
+
+STEP 7: Accessing Results
+-------------------------
+
+Results are saved to a CSV file at:
+    Application.persistentDataPath/fps_benchmark_results.csv
+
+On Quest 3, this is typically:
+    /storage/emulated/0/Android/data/com.YourCompany.YourApp/files/fps_benchmark_results.csv
+
+To access the file from Quest 3:
+1. Connect Quest to PC via USB
+2. Enable File Access in the Quest headset prompt
+3. Browse to Internal Storage > Android > data > [YourAppPackageName] > files
+4. Copy the fps_benchmark_results.csv file to your PC
+
+CSV columns:
+- timestamp: Date and time of benchmark
+- modelId: Name of the model prefab
+- runId: Sequential run number for this model
+- warmupSeconds: Duration of warmup period
+- sampleSeconds: Duration of sampling period
+- sampleCount: Number of FPS samples collected
+- meanFPS: Average FPS
+- medianFPS: 50th percentile FPS
+- p95FPS: 95th percentile FPS
+- p99FPS: 99th percentile FPS
+- p1LowFPS: 1st percentile FPS (1% low)
+- avgMemoryMB: Average managed memory in MB
+- notes: Any warnings (e.g., "model switched during sampling")
+
+
+COMPLETE CODE ADDITIONS SUMMARY
+-------------------------------
+
+Add to class declaration:
+    public class ModuleManager : MonoBehaviour, IBimModelProvider
+
+Add after OnModuleSpawned event (line ~69):
+    // IBimModelProvider interface implementation
+    public event Action<string, GameObject> OnModelLoaded;
+    public event Action<string> OnModelUnloaded;
+    
+    public string CurrentModelId => currentModule != null ? currentModule.name : null;
+    public GameObject CurrentModelRoot => currentModule;
+    public bool IsModelLoaded => currentModule != null && currentModule.activeInHierarchy;
+
+Add in SpawnModule after OnModuleSpawned?.Invoke:
+    OnModelLoaded?.Invoke(CurrentModelId, currentModule);
+
+Update OnModuleChanged method:
+    if (currentModule != null)
+    {
+        string modelId = CurrentModelId;
+        OnModelUnloaded?.Invoke(modelId);
+        Destroy(currentModule);
+    }
+
+Update OnProjectChanged method's destruction block:
+    if (currentModule != null)
+    {
+        string modelId = CurrentModelId;
+        OnModelUnloaded?.Invoke(modelId);
+        Destroy(currentModule);
+        currentModule = null;
+    }
+
+That's it! Your ModuleManager is now integrated with FPS benchmarking.

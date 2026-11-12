@@ -1,0 +1,29 @@
+# ---- line-ending normalization ------------------------------------------------
+* text=auto
+
+# ---- source and text --------------------------------------------------------------
+*.cs        text diff=csharp
+*.py        text diff=python
+*.asmdef    text
+*.json      text
+*.md        text
+*.txt       text
+*.csv       text
+*.cff       text
+*.uss       text
+*.uxml      text
+
+# ---- Unity YAML (Smart Merge: git config merge.unityyamlmerge.driver ...) ----------
+*.unity     merge=unityyamlmerge eol=lf linguist-generated
+*.prefab    merge=unityyamlmerge eol=lf linguist-generated
+*.asset     merge=unityyamlmerge eol=lf linguist-generated
+*.mat       merge=unityyamlmerge eol=lf linguist-generated
+*.meta      merge=unityyamlmerge eol=lf
+*.controller merge=unityyamlmerge eol=lf linguist-generated
+*.anim      merge=unityyamlmerge eol=lf linguist-generated
+
+# ---- binary ---------------------------------------------------------------------
+*.png       binary
+*.jpg       binary
+*.pdf       binary
+*.dll       binary

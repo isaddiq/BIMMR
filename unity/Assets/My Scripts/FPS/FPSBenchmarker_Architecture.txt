@@ -1,0 +1,356 @@
+================================================================================
+  FPS Benchmarker - System Architecture & Flow Diagram
+================================================================================
+
+COMPONENT ARCHITECTURE
+----------------------
+
+┌────────────────────────────────────────────────────────────────────┐
+│                           Unity Scene                              │
+│                                                                    │
+│  ┌──────────────────────┐         ┌───────────────────────┐        │
+│  │   ModuleManager      │         │   FPSBenchmarker      │        │
+│  │  (Your existing)     │◄────────┤   (New component)     │        │
+│  │                      │         │                       │        │
+│  │  • Spawns models     │         │  • Observes loading   │        │
+│  │  • Switches models   │         │  • Measures FPS       │        │
+│  │  • Implements        │         │  • Calculates stats   │        │
+│  │    IBimModelProvider │         │  • Saves to CSV       │        │
+│  │                      │         │                       │        │
+│  │  Events:             │─────────►  Subscribes to:       │        │
+│  │  • OnModelLoaded     │         │  • OnModelLoaded      │        │
+│  │  • OnModelUnloaded   │         │  • OnModelUnloaded    │        │
+│  │                      │         │                       │        │
+│  │  Properties:         │◄────────┤  Polls:               │        │
+│  │  • CurrentModelId    │         │  • IsModelLoaded      │        │
+│  │  • CurrentModelRoot  │         │  • CurrentModelRoot   │        │
+│  │  • IsModelLoaded     │         │  • CurrentModelId     │        │
+│  └──────────────────────┘         └───────────────────────┘        │
+│           │                                    │                   │
+│           │                                    │                   │
+│           ▼                                    ▼                   │
+│  ┌──────────────────┐              ┌─────────────────────┐         │
+│  │  BIM Model       │              │  CSV Results        │         │
+│  │  (Prefab)        │              │  (persistentDataPath) │       │
+│  └──────────────────┘              └─────────────────────┘         │
+└────────────────────────────────────────────────────────────────────┘
+
+
+BENCHMARK STATE MACHINE
+------------------------
+
+    ┌─────────────────┐
+    │      IDLE       │
+    │  (Ready state)  │
+    └────────┬────────┘
+             │
+             │ StartBenchmarkForCurrentModel()
+             │ or AutoBenchmark triggered
+             ▼
+    ┌─────────────────┐
+    │ WAITING_FOR_    │ ◄─── Model not loaded yet
+    │     MODEL       │      or not active
+    └────────┬────────┘
+             │
+             │ Model is loaded & active
+             ▼
+    ┌─────────────────┐
+    │  WARMING_UP     │
+    │   (15 seconds)  │ ◄─── Shaders compile
+    │                 │      Frame rate stabilizes
+    └────────┬────────┘
+             │
+             │ Timer reaches warmupDuration
+             ▼
+    ┌─────────────────┐
+    │   SAMPLING      │
+    │  (60 seconds)   │ ◄─── FPS measured every frame
+    │                 │      Memory tracked every frame
+    └────────┬────────┘      Watches for model changes
+             │
+             │ Timer reaches sampleDuration
+             │ or model changes detected
+             ▼
+    ┌─────────────────┐
+    │ Calculate Stats │
+    │  & Save to CSV  │
+    └────────┬────────┘
+             │
+             ▼
+    ┌─────────────────┐
+    │      IDLE       │
+    └─────────────────┘
+
+
+EVENT FLOW DIAGRAM
+------------------
+
+User Action                    ModuleManager              FPSBenchmarker
+────────────                   ─────────────              ──────────────
+
+[User loads model]
+      │
+      └──────────►  SpawnModule()
+                         │
+                         │ Instantiate prefab
+                         │ Setup XR interaction
+                         │ Calculate center
+                         │
+                         ├──► OnModuleSpawned?.Invoke()
+                         │
+                         └──► OnModelLoaded?.Invoke(id, root)
+                                      │
+                                      └─────────────────► OnModelLoaded()
+                                                                │
+                                                                │ if auto-benchmark
+                                                                │
+                                                          StartBenchmarkForCurrentModel()
+                                                                │
+                                                                │ Validate model
+                                                                │
+                                                          TransitionToWarmup()
+                                                                │
+                                                                │ Start 15s timer
+                                                                ▼
+
+[15 seconds pass...]                                      UpdateWarmingUp()
+                                                                │
+                                                          TransitionToSampling()
+                                                                │
+                                                                │ Start 60s timer
+                                                                ▼
+
+[60 seconds pass...]                                      UpdateSampling()
+                                                                │
+                                                                │ Sample FPS each frame
+                                                                │ Sample memory
+                                                                │
+                                                          CompleteBenchmark()
+                                                                │
+                                                                │ Calculate statistics
+                                                                │ Save to CSV
+                                                                │
+                                                          Back to IDLE
+                                                                ▼
+
+
+[User switches model]
+      │
+      └──────────►  OnModuleChanged()
+                         │
+                         │ Get current modelId
+                         │
+                         └──► OnModelUnloaded?.Invoke(modelId)
+                                      │
+                                      └─────────────────► OnModelUnloaded()
+                                                                │
+                                                                │ if benchmarking
+                                                                │
+                                                          CancelBenchmark()
+                                                                │
+                                                          Back to IDLE
+                                                                ▼
+
+
+DATA FLOW: FPS SAMPLING
+------------------------
+
+Frame N:
+  ┌──────────────────┐
+  │ Unity Update()   │
+  └────────┬─────────┘
+           │
+           │ Time.unscaledDeltaTime = 0.0139s
+           ▼
+  ┌──────────────────┐
+  │ UpdateSampling() │
+  └────────┬─────────┘
+           │
+           │ Calculate: FPS = 1 / 0.0139 = 71.94
+           │ Get: Memory = GC.GetTotalMemory(false) = 256,849,920 bytes
+           │
+           ├──► fpsSamples.Add(71.94)
+           ├──► memorySamples.Add(256849920)
+           │
+           ▼
+  Continue for ~3,600 frames (60 seconds at ~60 FPS)
+
+
+DATA FLOW: Statistics Calculation
+----------------------------------
+
+  ┌──────────────────────┐
+  │ fpsSamples (List)    │
+  │ [71.5, 72.0, 71.8,   │
+  │  72.0, 68.2, 72.0,   │
+  │  ... 3,600 samples]  │
+  └──────────┬───────────┘
+             │
+             │ Sort ascending
+             ▼
+  ┌──────────────────────┐
+  │ sortedSamples        │
+  │ [45.2, 52.1, 65.8,   │
+  │  68.2, 71.5, 71.8,   │
+  │  72.0, 72.0, 72.0]   │
+  └──────────┬───────────┘
+             │
+             ├──► Mean:    Average all values → 71.85 FPS
+             │
+             ├──► Median:  50th percentile → sortedSamples[1800] → 72.00 FPS
+             │
+             ├──► p95:     95th percentile → sortedSamples[3420] → 72.00 FPS
+             │
+             ├──► p99:     99th percentile → sortedSamples[3564] → 72.00 FPS
+             │
+             └──► p1 Low:  1st percentile  → sortedSamples[36]   → 68.50 FPS
+             │
+             ▼
+  ┌──────────────────────────────────────────────────┐
+  │ CSV Row:                                          │
+  │ 2025-12-13 14:32:15,Hospital_Floor1,1,15.0,60.0, │
+  │ 3600,71.85,72.00,72.00,72.00,68.50,245.32,       │
+  └──────────────────────────────────────────────────┘
+
+
+FILE SYSTEM STRUCTURE ON QUEST 3
+---------------------------------
+
+/storage/emulated/0/
+└── Android/
+    └── data/
+        └── com.YourCompany.BIM_MR_Ifc/    ← Your app package
+            └── files/                       ← Application.persistentDataPath
+                └── fps_benchmark_results.csv  ← Results saved here
+
+This path is Quest-compatible and persists between app runs.
+Can be accessed via USB file transfer or ADB.
+
+
+INTEGRATION POINTS IN YOUR CODE
+--------------------------------
+
+ModuleManager.cs:
+
+Line 19:  public class ModuleManager : MonoBehaviour, IBimModelProvider
+                                                       ^^^^^^^^^^^^^^^^^^^
+          Added interface implementation
+
+Line 73-77:  // IBimModelProvider interface
+             public event Action<string, GameObject> OnModelLoaded;
+             public event Action<string> OnModelUnloaded;
+             public string CurrentModelId => ...
+             public GameObject CurrentModelRoot => ...
+             public bool IsModelLoaded => ...
+
+Line 235:  OnModelUnloaded?.Invoke(modelId);
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+           Fires before destroying current module in OnProjectChanged()
+
+Line 244:  OnModelUnloaded?.Invoke(modelId);
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+           Fires before destroying current module in OnModuleChanged()
+
+Line 266:  OnModelLoaded?.Invoke(CurrentModelId, currentModule);
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+           Fires after new module is spawned and ready
+
+
+MEMORY FOOTPRINT
+----------------
+
+Runtime overhead (when not benchmarking):
+  • 2 event subscriptions: ~16 bytes
+  • State enum: 4 bytes
+  • Boolean flags: ~8 bytes
+  • Total: < 100 bytes
+
+During benchmarking (worst case):
+  • FPS samples: 3,600 floats × 4 bytes = 14.4 KB
+  • Memory samples: 3,600 longs × 8 bytes = 28.8 KB
+  • Total: ~43 KB
+
+CPU overhead:
+  • Idle: 0% (no Update logic)
+  • Warmup: < 0.1% (timer check only)
+  • Sampling: < 0.5% (FPS calculation + 1 GC call per frame)
+
+
+USAGE EXAMPLES
+--------------
+
+Example 1: Auto-benchmark every model
+  [SerializeField] private bool autoBenchmarkOnLoad = true;
+
+Example 2: Benchmark via button
+  public void OnBenchmarkButtonClicked()
+  {
+      FindObjectOfType<FPSBenchmarker>().StartBenchmarkForCurrentModel();
+  }
+
+Example 3: Benchmark sequence of models
+  IEnumerator BenchmarkAllModels()
+  {
+      var benchmarker = GetComponent<FPSBenchmarker>();
+      
+      foreach (var model in modelList)
+      {
+          moduleManager.LoadModel(model);
+          yield return new WaitForSeconds(2f); // Let model load
+          benchmarker.StartBenchmarkForCurrentModel();
+          yield return new WaitForSeconds(75f); // 15s warmup + 60s sample
+      }
+  }
+
+
+TROUBLESHOOTING GUIDE
+---------------------
+
+Issue: Benchmark never starts
+  Check: Is moduleManagerReference assigned?
+  Check: Does ModuleManager implement IBimModelProvider?
+  Check: Is a model actually loaded?
+  Check: Enable Debug Logs to see state transitions
+
+Issue: Results not saved
+  Check: Unity console for file path (should be /storage/emulated/0/...)
+  Check: App has storage permissions on Quest
+  Check: No exceptions in console during SaveResultsToCSV()
+
+Issue: Low sample count
+  Check: Is frame rate extremely low? (< 60 FPS = fewer samples)
+  Check: Was benchmark cancelled early?
+  Check: Check "notes" column in CSV for warnings
+
+Issue: Memory constantly growing
+  This is normal if your models are large
+  Compare avgMemoryMB between multiple runs of same model
+  If memory increases each run → possible memory leak
+
+Issue: Inconsistent results between runs
+  Check: Same Quest power/thermal state?
+  Check: Other apps running in background?
+  Check: Model fully loaded before warmup starts?
+  Tip: First run is often slower due to shader compilation
+
+
+PERFORMANCE CONSIDERATIONS
+---------------------------
+
+✓ Uses Time.unscaledDeltaTime (not affected by Time.timeScale)
+✓ GC.GetTotalMemory(false) is lightweight (no garbage collection triggered)
+✓ FPS calculation is simple division (minimal CPU)
+✓ Statistics calculated only once at end (not per-frame)
+✓ File I/O only happens at benchmark completion
+✓ No memory allocations during sampling (List pre-allocated)
+
+Quest 3 Performance Tips:
+• Keep models under 500MB
+• Use texture compression (ASTC)
+• Optimize draw calls
+• Use occlusion culling
+• Target 72 FPS native refresh rate
+• Watch for thermal throttling
+
+
+This concludes the system architecture documentation!
